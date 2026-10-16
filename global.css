@@ -4,22 +4,22 @@
 
 @layer base {
   :root {
-    --background: 138 47% 97%;
-    --foreground: 146 52% 15%;
+    --background: 214 60% 97%;
+    --foreground: 222 47% 15%;
     --card: 0 0% 100%;
-    --card-foreground: 146 52% 15%;
-    --primary: 147 75% 33%;
+    --card-foreground: 222 47% 15%;
+    --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 143 61% 91%;
-    --secondary-foreground: 146 55% 24%;
-    --muted: 140 57% 94%;
-    --muted-foreground: 146 26% 40%;
-    --accent: 142 72% 84%;
+    --secondary: 214 70% 92%;
+    --secondary-foreground: 222 47% 28%;
+    --muted: 214 50% 94%;
+    --muted-foreground: 218 20% 42%;
+    --accent: 214 90% 85%;
     --destructive: 8 100% 97%;
     --destructive-foreground: 6 74% 54%;
-    --border: 141 47% 83%;
-    --input: 141 47% 83%;
-    --ring: 146 75% 45%;
+    --border: 214 40% 84%;
+    --input: 214 40% 84%;
+    --ring: 221 83% 60%;
     --success: 146 80% 40%;
     --priority-low: 142 73% 90%;
     --priority-low-foreground: 146 68% 33%;
@@ -31,22 +31,22 @@
 
   @media (prefers-color-scheme: dark) {
     :root {
-      --background: 150 31% 9%;
-      --foreground: 136 42% 92%;
-      --card: 149 27% 12%;
-      --card-foreground: 136 42% 92%;
-      --primary: 142 70% 54%;
-      --primary-foreground: 150 35% 100%;
-      --secondary: 149 24% 19%;
-      --secondary-foreground: 138 30% 83%;
-      --muted: 149 18% 16%;
-      --muted-foreground: 140 17% 68%;
-      --accent: 146 35% 20%;
+      --background: 222 35% 9%;
+      --foreground: 214 40% 92%;
+      --card: 222 30% 13%;
+      --card-foreground: 214 40% 92%;
+      --primary: 217 91% 60%;
+      --primary-foreground: 0 0% 100%;
+      --secondary: 222 25% 20%;
+      --secondary-foreground: 214 30% 84%;
+      --muted: 222 20% 17%;
+      --muted-foreground: 215 17% 68%;
+      --accent: 221 40% 22%;
       --destructive: 8 55% 16%;
       --destructive-foreground: 7 85% 76%;
-      --border: 149 16% 24%;
-      --input: 149 16% 24%;
-      --ring: 145 72% 56%;
+      --border: 222 18% 25%;
+      --input: 222 18% 25%;
+      --ring: 217 91% 65%;
       --success: 146 70% 52%;
       --priority-low: 147 36% 22%;
       --priority-low-foreground: 137 56% 78%;

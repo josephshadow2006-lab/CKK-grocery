@@ -13,6 +13,7 @@ export const createGroceryItem = async (input: {
   category: string;
   quantity: number;
   priority: string;
+  price: number;
 }) => {
   const rows = await db
     .insert(groceryItems)
@@ -21,6 +22,7 @@ export const createGroceryItem = async (input: {
       name: input.name,
       category: input.category,
       quantity: Math.max(1, input.quantity),
+      price: Math.max(0, input.price),
       purchased: false,
       priority: input.priority,
       updated_at: Date.now(),

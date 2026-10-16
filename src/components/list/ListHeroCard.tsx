@@ -30,3 +30,4 @@ const ListHeroCard = () => {
 };
 
 export default ListHeroCard;
+

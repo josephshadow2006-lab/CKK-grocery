@@ -15,13 +15,13 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, category, quantity, priority } = body;
+    const { name, category, quantity, priority, price } = body;
 
     if (!name || !category || !priority) {
       return Response.json({ error: "Please provide all required fields." }, { status: 400 });
     }
 
-    const item = await createGroceryItem({ name, category, quantity, priority });
+    const item = await createGroceryItem({ name, category, quantity, priority, price: Number(price) || 0 });
 
     return Response.json({ item }, { status: 201 });
   } catch (error) {

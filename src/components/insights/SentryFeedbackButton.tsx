@@ -26,3 +26,4 @@ const SentryFeedbackButton = () => {
   );
 };
 export default SentryFeedbackButton;
+

@@ -34,3 +34,4 @@ export default Sentry.wrap(function RootLayout() {
     </ClerkProvider>
   );
 });
+

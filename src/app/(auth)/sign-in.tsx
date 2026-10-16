@@ -37,8 +37,8 @@ export default function SignInScreen() {
         <View className="mt-6 rounded-[30px] border border-white/20 bg-white/10 p-3">
           <Image
             source={require("../../../assets/images/image.png")}
-            style={{ width: "100%", height: 320 ,borderRadius: 30 }}
-            contentFit="contain"
+              style={{ width: "100%", aspectRatio: 1.5, borderRadius: 30 }}
+            contentFit="fill"
           />
         </View>
       </View>
@@ -73,7 +73,7 @@ export default function SignInScreen() {
               {isGoogleClicked ? "Connecting Google..." : "Continue with Google"}
             </Text>
 
-            <FontAwesome name="angle-right" size={18} color="#5f6e66" />
+            <FontAwesome name="angle-right" size={18} color="#5f6b7a" />
           </Pressable>
 
           <Pressable
@@ -89,7 +89,7 @@ export default function SignInScreen() {
             <Text className="ml-3 flex-1 text-lg font-semibold text-card-foreground">
               {isGitHubClicked ? "Connecting GitHub..." : "Continue with GitHub"}
             </Text>
-            <FontAwesome name="angle-right" size={18} color="#5f6e66" />
+            <FontAwesome name="angle-right" size={18} color="#5f6b7a" />
           </Pressable>
 
           <Pressable
@@ -105,7 +105,7 @@ export default function SignInScreen() {
             <Text className="ml-3 flex-1 text-lg font-semibold text-background">
               {isAppleClicked ? "Connecting Apple..." : "Continue with Apple"}
             </Text>
-            <FontAwesome name="angle-right" size={18} color="#5f6e66" />
+            <FontAwesome name="angle-right" size={18} color="#5f6b7a" />
           </Pressable>
         </View>
 
@@ -117,3 +117,4 @@ export default function SignInScreen() {
     </SafeAreaView>
   );
 }
+

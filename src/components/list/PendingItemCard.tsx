@@ -48,7 +48,7 @@ const PendingItemCard = ({ item }: { item: GroceryItem }) => {
               className="h-8 w-8 items-center justify-center rounded-xl border border-border bg-muted"
               onPress={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
             >
-              <FontAwesome6 name="minus" size={12} color="#3b5a4a" />
+              <FontAwesome6 name="minus" size={12} color="#3b4f66" />
             </Pressable>
 
             <Text className="min-w-9 text-center text-base font-semibold text-foreground">
@@ -59,7 +59,7 @@ const PendingItemCard = ({ item }: { item: GroceryItem }) => {
               className="h-8 w-8 items-center justify-center rounded-xl border border-border bg-muted"
               onPress={() => updateQuantity(item.id, item.quantity + 1)}
             >
-              <FontAwesome6 name="plus" size={12} color="#3b5a4a" />
+              <FontAwesome6 name="plus" size={12} color="#3b4f66" />
             </Pressable>
           </View>
         </View>
@@ -76,3 +76,4 @@ const PendingItemCard = ({ item }: { item: GroceryItem }) => {
 };
 
 export default PendingItemCard;
+

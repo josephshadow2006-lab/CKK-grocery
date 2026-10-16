@@ -41,7 +41,7 @@ export default function InsightsCategorySection() {
                 className="h-2 rounded-full"
                 style={{
                   width: `${widthPercent}%` as `${number}%`,
-                  backgroundColor: categoryColors[category] ?? "#8aa397",
+                  backgroundColor: categoryColors[category] ?? "#8a9bb0",
                 }}
               />
             </View>
@@ -59,3 +59,4 @@ export default function InsightsCategorySection() {
     </View>
   );
 }
+

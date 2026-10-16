@@ -16,3 +16,4 @@ const SSOCallbackScreen = () => {
 };
 
 export default SSOCallbackScreen;
+
