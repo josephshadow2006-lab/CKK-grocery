@@ -1,0 +1,664 @@
+===== global.css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 138 47% 97%;
+    --foreground: 146 52% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 146 52% 15%;
+    --primary: 147 75% 33%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 143 61% 91%;
+    --secondary-foreground: 146 55% 24%;
+    --muted: 140 57% 94%;
+    --muted-foreground: 146 26% 40%;
+    --accent: 142 72% 84%;
+    --destructive: 8 100% 97%;
+    --destructive-foreground: 6 74% 54%;
+    --border: 141 47% 83%;
+    --input: 141 47% 83%;
+    --ring: 146 75% 45%;
+    --success: 146 80% 40%;
+    --priority-low: 142 73% 90%;
+    --priority-low-foreground: 146 68% 33%;
+    --priority-medium: 45 100% 90%;
+    --priority-medium-foreground: 35 91% 31%;
+    --priority-high: 10 100% 92%;
+    --priority-high-foreground: 6 71% 48%;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: 150 31% 9%;
+      --foreground: 136 42% 92%;
+      --card: 149 27% 12%;
+      --card-foreground: 136 42% 92%;
+      --primary: 142 70% 54%;
+      --primary-foreground: 150 35% 100%;
+      --secondary: 149 24% 19%;
+      --secondary-foreground: 138 30% 83%;
+      --muted: 149 18% 16%;
+      --muted-foreground: 140 17% 68%;
+      --accent: 146 35% 20%;
+      --destructive: 8 55% 16%;
+      --destructive-foreground: 7 85% 76%;
+      --border: 149 16% 24%;
+      --input: 149 16% 24%;
+      --ring: 145 72% 56%;
+      --success: 146 70% 52%;
+      --priority-low: 147 36% 22%;
+      --priority-low-foreground: 137 56% 78%;
+      --priority-medium: 39 39% 23%;
+      --priority-medium-foreground: 45 88% 79%;
+      --priority-high: 8 35% 24%;
+      --priority-high-foreground: 8 86% 82%;
+    }
+  }
+}
+
+===== src\lib\server\db\schema.ts
+import { bigint, boolean, integer, pgTable, text } from "drizzle-orm/pg-core";
+
+export const groceryItems = pgTable("grocery_items", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  category: text("category").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  purchased: boolean("purchased").notNull().default(false),
+  priority: text("priority").notNull().default("medium"),
+  updated_at: bigint("updated_at", { mode: "number" }).notNull(),
+});
+
+===== src\app\api\items\index+api.ts
+import { createGroceryItem, listGroceryItems } from "@/lib/server/db-actions";
+
+export async function GET() {
+  try {
+    const items = await listGroceryItems();
+
+    return Response.json({ items });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to fetch items";
+
+    return Response.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { name, category, quantity, priority } = body;
+
+    if (!name || !category || !priority) {
+      return Response.json({ error: "Please provide all required fields." }, { status: 400 });
+    }
+
+    const item = await createGroceryItem({ name, category, quantity, priority });
+
+    return Response.json({ item }, { status: 201 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to create item";
+    return Response.json({ error: message }, { status: 500 });
+  }
+}
+
+===== src\app\api\items\[id]+api.ts
+
+import {
+  deleteGroceryItem,
+  setGroceryItemPurchased,
+  updateGroceryItemQuantity,
+} from "@/lib/server/db-actions";
+
+export async function PATCH(request: Request, { id }: { id: string }) {
+  try {
+    const body = await request.json();
+
+    const item = body.quantity
+      ? await updateGroceryItemQuantity(id, body.quantity)
+      : await setGroceryItemPurchased(id, body.purchased ?? true);
+
+    if (!item) return Response.json({ error: "Item not found." }, { status: 404 });
+
+    return Response.json({ item });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to update item";
+    return Response.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function DELETE(_request: Request, { id }: { id: string }) {
+  try {
+    await deleteGroceryItem(id);
+    return Response.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to delete item";
+    return Response.json({ error: message }, { status: 500 });
+  }
+}
+
+===== src\lib\server\db-actions.ts
+import { desc, eq } from "drizzle-orm";
+import { db } from "./db/client";
+import { groceryItems } from "./db/schema";
+
+export const listGroceryItems = async () => {
+  const rows = await db.select().from(groceryItems).orderBy(desc(groceryItems.updated_at));
+
+  return rows;
+};
+
+export const createGroceryItem = async (input: {
+  name: string;
+  category: string;
+  quantity: number;
+  priority: string;
+}) => {
+  const rows = await db
+    .insert(groceryItems)
+    .values({
+      id: crypto.randomUUID(),
+      name: input.name,
+      category: input.category,
+      quantity: Math.max(1, input.quantity),
+      purchased: false,
+      priority: input.priority,
+      updated_at: Date.now(),
+    })
+    .returning();
+
+  return rows[0];
+};
+
+export const setGroceryItemPurchased = async (id: string, purchased: boolean) => {
+  const rows = await db
+    .update(groceryItems)
+    .set({ purchased, updated_at: Date.now() })
+    .where(eq(groceryItems.id, id))
+    .returning();
+
+  if (!rows.length) return null;
+  return rows[0];
+};
+
+export const updateGroceryItemQuantity = async (id: string, quantity: number) => {
+  const rows = await db
+    .update(groceryItems)
+    .set({ quantity: Math.max(1, Math.floor(quantity)), updated_at: Date.now() })
+    .where(eq(groceryItems.id, id))
+    .returning();
+
+  if (!rows.length) return null;
+  return rows[0];
+};
+
+export const deleteGroceryItem = async (id: string) => {
+  await db.delete(groceryItems).where(eq(groceryItems.id, id));
+};
+
+export const clearPurchasedItems = async () => {
+  await db.delete(groceryItems).where(eq(groceryItems.purchased, true));
+};
+
+===== src\store\grocery-store.ts
+import { create } from "zustand";
+
+export type GroceryCategory = "Produce" | "Dairy" | "Bakery" | "Pantry" | "Snacks";
+export type GroceryPriority = "low" | "medium" | "high";
+
+export type GroceryItem = {
+  id: string;
+  name: string;
+  category: GroceryCategory;
+  quantity: number;
+  purchased: boolean;
+  priority: GroceryPriority;
+};
+
+export type CreateItemInput = {
+  name: string;
+  category: GroceryCategory;
+  quantity: number;
+  priority: GroceryPriority;
+};
+
+type ItemsResponse = { items: GroceryItem[] };
+type ItemResponse = { item: GroceryItem };
+
+type GroceryStore = {
+  items: GroceryItem[];
+  isLoading: boolean;
+  error: string | null;
+  loadItems: () => Promise<void>;
+  addItem: (input: CreateItemInput) => Promise<GroceryItem | void>;
+  updateQuantity: (id: string, quantity: number) => Promise<void>;
+  togglePurchased: (id: string) => Promise<void>;
+  removeItem: (id: string) => Promise<void>;
+  clearPurchased: () => Promise<void>;
+};
+
+export const useGroceryStore = create<GroceryStore>((set, get) => ({
+  items: [],
+  isLoading: false,
+  error: null,
+
+  loadItems: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const res = await fetch("/api/items");
+      const payload = (await res.json()) as ItemsResponse;
+
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+      set({ items: payload.items });
+    } catch (error) {
+      console.error("Error loading items:", error);
+      set({ error: "Something went wrong" });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  addItem: async (input) => {
+    set({ error: null });
+    try {
+      const res = await fetch("/api/items", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: input.name,
+          category: input.category,
+          quantity: Math.max(1, input.quantity),
+          priority: input.priority,
+        }),
+      });
+      const payload = (await res.json()) as ItemResponse;
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+
+      set((state) => ({ items: [payload.item, ...state.items] }));
+      return payload.item;
+    } catch (error) {
+      console.error("Error adding item:", error);
+      set({ error: "Something went wrong" });
+    }
+  },
+  updateQuantity: async (id, quantity) => {
+    const nextQuantity = Math.max(1, quantity);
+    set({ error: null });
+
+    try {
+      const res = await fetch(`/api/items/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quantity: nextQuantity }),
+      });
+      const payload = (await res.json()) as ItemResponse;
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+      set((state) => ({
+        items: state.items.map((item) => (item.id === id ? payload.item : item)),
+      }));
+    } catch (error) {
+      console.error("Error updating quantity:", error);
+      set({ error: "Something went wrong" });
+    }
+  },
+
+  togglePurchased: async (id) => {
+    const currentItem = get().items.find((item) => item.id === id);
+    if (!currentItem) return;
+
+    const nextPurchased = !currentItem.purchased;
+    set({ error: null });
+    try {
+      const res = await fetch(`/api/items/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ purchased: nextPurchased }),
+      });
+
+      const payload = (await res.json()) as ItemResponse;
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+
+      set((state) => ({
+        items: state.items.map((item) => (item.id === id ? payload.item : item)),
+      }));
+    } catch (error) {
+      console.error("Error toggling purchased:", error);
+      set({ error: "Something went wrong" });
+    }
+  },
+
+  removeItem: async (id) => {
+    set({ error: null });
+    try {
+      const res = await fetch(`/api/items/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+
+      set((state) => ({ items: state.items.filter((item) => item.id !== id) }));
+    } catch (error) {
+      console.error("Error removing item:", error);
+      set({ error: "Something went wrong" });
+    }
+  },
+
+  clearPurchased: async () => {
+    set({ error: null });
+    try {
+      const res = await fetch("/api/items/clear-purchased", { method: "POST" });
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+
+      const items = get().items.filter((item) => !item.purchased);
+      set({ items });
+    } catch (error) {
+      console.error("Error clearing purchased:", error);
+      set({ error: "Something went wrong" });
+    }
+  },
+}));
+
+===== src\components\planner\PlannerFormCard.tsx
+import { GroceryCategory, GroceryPriority, useGroceryStore } from "@/store/grocery-store";
+import { FontAwesome6 } from "@expo/vector-icons";
+import { useState } from "react";
+import { Pressable, Text, TextInput, View } from "react-native";
+
+const categories: GroceryCategory[] = ["Produce", "Dairy", "Bakery", "Pantry", "Snacks"];
+const priorities: GroceryPriority[] = ["low", "medium", "high"];
+
+const categoryIcons = {
+  Produce: "leaf",
+  Dairy: "cow",
+  Bakery: "bread-slice",
+  Pantry: "box-open",
+  Snacks: "cookie-bite",
+};
+
+const PlannerFormCard = () => {
+  const { error, addItem } = useGroceryStore();
+
+  const [name, setName] = useState("");
+  const [quantity, setQuantity] = useState("1");
+  const [category, setCategory] = useState<GroceryCategory>("Produce");
+  const [priority, setPriority] = useState<GroceryPriority>("medium");
+
+  const canCreate = name.trim().length > 0;
+
+  const handleQuantityChange = (value: string) => {
+    // this regex is used to remove all non-numeric characters from the input
+    setQuantity(value.replace(/[^0-9]/g, ""));
+  };
+
+  const createItem = async () => {
+    await addItem({
+      name: name.trim(),
+      category,
+      priority,
+      quantity: Number(quantity),
+    });
+
+    // optional
+    // Alert.alert("Success", "Item created");
+
+    // reset our form
+    setName("");
+    setQuantity("1");
+    setCategory("Produce");
+    setPriority("medium");
+  };
+
+  return (
+    <View className="rounded-3xl border border-border bg-card p-4">
+      {/* NAME */}
+      <Text className="text-sm font-semibold text-foreground">Item name</Text>
+      <View className="mt-2 flex-row items-center rounded-2xl border border-border bg-muted px-4 py-3">
+        <FontAwesome6 name="bag-shopping" size={13} color="#5b7567" />
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Ex: Blueberries"
+          className="ml-3 flex-1 text-base text-foreground"
+          placeholderTextColor="#8aa397"
+        />
+      </View>
+
+      {/* QUANTITY */}
+      <Text className="mt-4 text-sm font-semibold text-foreground">Quantity</Text>
+      <View className="mt-2 flex-row items-center rounded-2xl border border-border bg-muted px-4 py-3">
+        <FontAwesome6 name="hashtag" size={13} color="#5b7567" />
+        <TextInput
+          value={quantity}
+          onChangeText={handleQuantityChange}
+          keyboardType="number-pad"
+          placeholder="1"
+          placeholderTextColor="#8aa397"
+          className="ml-3 flex-1 text-base text-foreground"
+        />
+      </View>
+
+      {/* CATEGORIES */}
+      <Text className="mt-4 text-sm font-semibold text-foreground">Category</Text>
+      <View className="mt-2 flex-row flex-wrap gap-2">
+        {categories.map((option) => {
+          const active = option === category;
+          return (
+            <Pressable
+              key={option}
+              onPress={() => setCategory(option)}
+              className={`flex-row items-center rounded-full px-4 py-2 ${
+                active ? "bg-primary" : "bg-secondary"
+              }`}
+            >
+              <FontAwesome6
+                name={categoryIcons[option]}
+                size={12}
+                color={active ? "#fff" : "#486856"}
+              />
+              <Text
+                className={`ml-2 text-sm font-semibold ${
+                  active ? "text-primary-foreground" : "text-secondary-foreground"
+                }`}
+              >
+                {option}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {/* PRIORITY */}
+      <Text className="mt-4 text-sm font-semibold text-foreground">Priority</Text>
+      <View className="mt-2 flex-row gap-2">
+        {priorities.map((option) => {
+          const active = option === priority;
+          const icon = option === "high" ? "bolt" : option === "medium" ? "compass" : "seedling";
+          return (
+            <Pressable
+              key={option}
+              onPress={() => setPriority(option)}
+              className={`flex-1 flex-row items-center justify-center gap-2 rounded-2xl py-2 ${
+                active ? "bg-primary" : "bg-secondary"
+              }`}
+            >
+              <FontAwesome6 name={icon} size={12} color={active ? "#ffffff" : "#486856"} />
+              <Text
+                className={`mt-1 text-sm font-semibold capitalize ${
+                  active ? "text-primary-foreground" : "text-secondary-foreground"
+                }`}
+              >
+                {option}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Pressable
+        className={`mt-5 flex-row items-center justify-center rounded-2xl py-3 ${
+          canCreate ? "bg-primary" : "bg-muted"
+        }`}
+        onPress={createItem}
+        disabled={!canCreate}
+      >
+        <FontAwesome6 name="plus" size={14} color={canCreate ? "#ffffff" : "#7a9386"} />
+        <Text
+          className={`ml-2 text-base font-semibold ${
+            canCreate ? "text-primary-foreground" : "text-muted-foreground"
+          }`}
+        >
+          Add to Grocery List
+        </Text>
+      </Pressable>
+
+      {error ? (
+        <View className="mt-3 rounded-2xl border border-destructive bg-destructive px-3 py-2">
+          <Text className="text-sm text-white text-center uppercase">{error}</Text>
+        </View>
+      ) : null}
+    </View>
+  );
+};
+export default PlannerFormCard;
+
+===== src\components\list\PendingItemCard.tsx
+import { GroceryItem, useGroceryStore } from "@/store/grocery-store";
+import { FontAwesome6 } from "@expo/vector-icons";
+import { Pressable, Text, View } from "react-native";
+
+const priorityPillBg = {
+  low: "bg-priority-low",
+  medium: "bg-priority-medium",
+  high: "bg-priority-high",
+};
+
+const priorityPillText = {
+  low: "text-priority-low-foreground",
+  medium: "text-priority-medium-foreground",
+  high: "text-priority-high-foreground",
+};
+
+const PendingItemCard = ({ item }: { item: GroceryItem }) => {
+  const { removeItem, updateQuantity, togglePurchased } = useGroceryStore();
+
+  return (
+    <View className="rounded-3xl border border-border bg-card p-4">
+      <View className="flex-row items-start gap-3">
+        <Pressable
+          className="mt-1 size-6 items-center justify-center rounded-full border-2 border-border bg-card"
+          onPress={() => togglePurchased(item.id)}
+        ></Pressable>
+
+        <View className="flex-1">
+          <View className="flex-row items-center justify-between gap-2">
+            <Text className="flex-1 text-lg font-semibold text-card-foreground">{item.name}</Text>
+            <View className={`rounded-full px-3 py-1 ${priorityPillBg[item.priority]}`}>
+              <Text className={`text-xs font-bold uppercase ${priorityPillText[item.priority]}`}>
+                {item.priority}
+              </Text>
+            </View>
+          </View>
+
+          <View className="mt-2 flex-row items-center gap-2">
+            <View className="rounded-full bg-secondary px-3 py-1">
+              <Text className="text-xs font-semibold text-secondary-foreground">
+                {item.category}
+              </Text>
+            </View>
+          </View>
+
+          <View className="mt-3 flex-row items-center gap-2">
+            <Pressable
+              className="h-8 w-8 items-center justify-center rounded-xl border border-border bg-muted"
+              onPress={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+            >
+              <FontAwesome6 name="minus" size={12} color="#3b5a4a" />
+            </Pressable>
+
+            <Text className="min-w-9 text-center text-base font-semibold text-foreground">
+              {item.quantity}
+            </Text>
+
+            <Pressable
+              className="h-8 w-8 items-center justify-center rounded-xl border border-border bg-muted"
+              onPress={() => updateQuantity(item.id, item.quantity + 1)}
+            >
+              <FontAwesome6 name="plus" size={12} color="#3b5a4a" />
+            </Pressable>
+          </View>
+        </View>
+
+        <Pressable
+          className="h-9 w-9 items-center justify-center rounded-xl bg-destructive"
+          onPress={() => removeItem(item.id)}
+        >
+          <FontAwesome6 name="trash" size={13} color="#d45f58" />
+        </Pressable>
+      </View>
+    </View>
+  );
+};
+
+export default PendingItemCard;
+
+===== scripts\seed-grocery.cjs
+const { neon } = require("@neondatabase/serverless");
+const crypto = require("node:crypto");
+
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is required. Example: DATABASE_URL=... npm run seed:grocery");
+}
+
+const sql = neon(databaseUrl);
+
+const seedItems = [
+  { name: "Bananas", category: "Produce", quantity: 6, priority: "medium", purchased: false },
+  { name: "Avocado", category: "Produce", quantity: 3, priority: "high", purchased: false },
+  { name: "Greek Yogurt", category: "Dairy", quantity: 2, priority: "medium", purchased: true },
+  { name: "Cheddar Cheese", category: "Dairy", quantity: 1, priority: "low", purchased: false },
+  { name: "Sourdough Bread", category: "Bakery", quantity: 1, priority: "high", purchased: false },
+  { name: "Pasta", category: "Pantry", quantity: 2, priority: "low", purchased: false },
+  { name: "Tomato Sauce", category: "Pantry", quantity: 2, priority: "medium", purchased: true },
+  { name: "Granola Bars", category: "Snacks", quantity: 5, priority: "medium", purchased: false },
+  { name: "Dark Chocolate", category: "Snacks", quantity: 2, priority: "low", purchased: false },
+  { name: "Eggs", category: "Dairy", quantity: 12, priority: "high", purchased: false },
+];
+
+async function seed() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS grocery_items (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      category TEXT NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      purchased BOOLEAN NOT NULL DEFAULT FALSE,
+      priority TEXT NOT NULL DEFAULT 'medium',
+      updated_at BIGINT NOT NULL
+    )
+  `;
+
+  for (const item of seedItems) {
+    await sql`
+      INSERT INTO grocery_items (id, name, category, quantity, purchased, priority, updated_at)
+      VALUES (
+        ${crypto.randomUUID()},
+        ${item.name},
+        ${item.category},
+        ${item.quantity},
+        ${item.purchased},
+        ${item.priority},
+        ${Date.now()}
+      )
+    `;
+  }
+
+  console.log(`Seed complete: inserted ${seedItems.length} grocery items.`);
+}
+
+seed().catch((error) => {
+  console.error("Seed failed:", error);
+  process.exit(1);
+});
+
