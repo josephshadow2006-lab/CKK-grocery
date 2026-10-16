@@ -24,6 +24,7 @@ export default function ListScreen() {
           <TabScreenBackground />
           <ListHeroCard />
           <View className="flex-row items-center justify-between px-1">
+            
             <Text className="text-sm font-semibold uppercase tracking-[1px] text-muted-foreground">
               Shopping items
             </Text>

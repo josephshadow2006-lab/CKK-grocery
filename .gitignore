@@ -45,3 +45,12 @@ app-example
 /android
 
 .env.local
+# Environment files and secrets
+.env*
+!.env.example
+
+# Private keys and local credentials
+*.pem
+*.key
+*.p12
+*.pfx
